@@ -31,7 +31,7 @@ def mostrar_tabla(estudiantes: List[Estudiante]) -> None:
     imprimir_info(f"Total: {len(estudiantes)} estudiante(s)")
 
 
-# ===================== C · CREAR =====================
+# crear
 
 def opcion_crear() -> None:
     """Solicita los datos por teclado y llama al controlador para crear un estudiante."""
@@ -69,7 +69,7 @@ def opcion_ver_todos() -> None:
     pausa()
 
 
-# ===================== S · BUSCAR =====================
+# BUSCAR 
 
 def opcion_buscar() -> None:
     """Busca estudiantes por texto parcial usando el controlador."""
@@ -84,7 +84,7 @@ def opcion_buscar() -> None:
     pausa()
 
 
-# ===================== R · LEER UNO =====================
+# LEER UNO 
 
 def opcion_ver_por_id() -> None:
     """Muestra el detalle completo (diccionario) de un estudiante específico."""
@@ -169,7 +169,7 @@ def opcion_eliminar() -> None:
     # Usamos el método mágico __str__ del objeto para mostrarlo de forma bonita
     imprimir_info(f"Se eliminará permanentemente a:\n{estudiante}")
     
-    if confirmar("¿Confirma la eliminación? (s/n): "):
+    if confirmar("¿Confirma la eliminación? (si/no): "):
         exito, mensaje = eliminar_estudiante(id_estudiante)
         if exito:
             imprimir_exito(mensaje)

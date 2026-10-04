@@ -6,8 +6,6 @@ from shared.herramientas import es_email_valido
 # Instancia global del gestor para leer y guardar en el archivo JSON
 gestor = GestorJSON("data/estudiantes.json")
 
-# ===================== CONFIGURACIÓN INMUTABLE =====================
-# Las tuplas son inmutables (no se pueden modificar). Es perfecto para configuraciones fijas.
 CAMPOS_OBLIGATORIOS: Tuple[str, ...] = (
     "nombre", "apellido", "email", "cedula", "carnet", 
     "facultad", "carrera", "nivel", "paralelo"
@@ -17,8 +15,6 @@ CAMPOS_BUSCABLES: Tuple[str, ...] = (
     "nombre", "apellido", "email", "cedula", "carnet", "carrera"
 )
 
-
-# ===================== AYUDAS INTERNAS =====================
 
 def emails_registrados(excepto_id: Optional[int] = None) -> Set[str]:
     """
@@ -69,8 +65,7 @@ def siguiente_id() -> int:
     # Si la lista tiene elementos, tomamos el máximo y le sumamos 1. Si está vacía, iniciamos en 1.
     return max(ids) + 1 if ids else 1
 
-
-# ===================== C · CREATE (CREAR) =====================
+#Crear
 
 def crear_estudiante(datos: Dict[str, Any]) -> Tuple[bool, str]:
     """
@@ -135,7 +130,7 @@ def crear_estudiante(datos: Dict[str, Any]) -> Tuple[bool, str]:
         return False, f"Error inesperado: {error}"
 
 
-# ===================== R · READ (LEER) =====================
+#Leer
 
 def obtener_todos() -> List[Estudiante]:
     """
@@ -165,8 +160,7 @@ def obtener_por_id(id_estudiante: int) -> Optional[Estudiante]:
     return None
 
 
-# ===================== S · SEARCH (BUSCAR) =====================
-
+#Buscar
 def buscar_estudiantes(termino: str) -> List[Estudiante]:
     """
     Realiza una búsqueda tipo "fuzzy" o lineal por múltiples campos configurados.
@@ -192,7 +186,7 @@ def buscar_estudiantes(termino: str) -> List[Estudiante]:
     return encontrados
 
 
-# ===================== U · UPDATE (ACTUALIZAR) =====================
+#Actualizar
 
 def actualizar_estudiante(id_estudiante: int, cambios: Dict[str, Any]) -> Tuple[bool, str]:
     """
@@ -255,7 +249,7 @@ def actualizar_estudiante(id_estudiante: int, cambios: Dict[str, Any]) -> Tuple[
         return False, f"Error inesperado: {error}"
 
 
-# ===================== D · DELETE (ELIMINAR) =====================
+#Delete
 
 def eliminar_estudiante(id_estudiante: int) -> Tuple[bool, str]:
     """
@@ -281,7 +275,7 @@ def eliminar_estudiante(id_estudiante: int) -> Tuple[bool, str]:
     gestor.guardar(quedan)
     return True, f"Estudiante {id_estudiante} eliminado"
 
-# ===================== GESTIÓN ACADÉMICA (NOTAS Y MATERIAS) =====================
+#Gestion academica
 
 def agregar_calificacion(id_estudiante: int, materia: str, nota: str):
     """Añade una nota a una materia específica de un estudiante y actualiza el archivo JSON."""
@@ -313,7 +307,7 @@ def agregar_calificacion(id_estudiante: int, materia: str, nota: str):
         return False, f"Error al registrar la calificación: {error}"
 
 
-# ===================== EXTRA: ESTADÍSTICAS =====================
+# ESTADÍSTICAS 
 
 def estadisticas() -> Dict[str, Any]:
     """
