@@ -1,0 +1,23 @@
+[
+  {
+    "id": 1,
+    "nombre": "Derick",
+    "apellido": "Vinces",
+    "email": "derick@gmail.com",
+    "cedula": "1207784563",
+    "carnet": "jsdge76378",
+    "facultad": "CIENCIAS E INGENIERIAS",
+    "carrera": "SOFTWARE",
+    "nivel": 4,
+    "paralelo": "B1",
+    "beca_activa": false,
+    "notas": {
+      "Estructura De Datos": [
+        10.0
+      ]
+    },
+    "materias": [
+      "Estructura De Datos"
+    ]
+  }
+]

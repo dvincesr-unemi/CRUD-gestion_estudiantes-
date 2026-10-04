@@ -281,6 +281,37 @@ def eliminar_estudiante(id_estudiante: int) -> Tuple[bool, str]:
     gestor.guardar(quedan)
     return True, f"Estudiante {id_estudiante} eliminado"
 
+# ===================== GESTIÓN ACADÉMICA (NOTAS Y MATERIAS) =====================
+
+def agregar_calificacion(id_estudiante: int, materia: str, nota: str):
+    """Añade una nota a una materia específica de un estudiante y actualiza el archivo JSON."""
+    try:
+        estudiante = obtener_por_id(id_estudiante)
+        if not estudiante:
+            return False, f"No existe un estudiante con ID {id_estudiante}"
+
+        # Convertimos la nota (que entra como texto desde el input) a número flotante
+        nota_num = float(nota)
+        
+        # Llamamos al modelo para que actualice la memoria RAM
+        estudiante.agregar_nota(materia, nota_num)
+
+        # Reconstruimos la lista para guardarla en disco
+        registros = gestor.leer()
+        for i, reg in enumerate(registros):
+            if reg["id"] == id_estudiante:
+                registros[i] = estudiante.a_diccionario()
+                break
+
+        # Persistimos el cambio
+        gestor.guardar(registros)
+        return True, f"Nota {nota_num} añadida a '{materia}' para {estudiante.obtener_nombre_completo()}"
+        
+    except ValueError:
+        return False, "La calificación ingresada debe ser un número decimal (ej. 18.5) o entero válido"
+    except Exception as error:
+        return False, f"Error al registrar la calificación: {error}"
+
 
 # ===================== EXTRA: ESTADÍSTICAS =====================
 
