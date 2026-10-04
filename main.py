@@ -1,10 +1,10 @@
-from typing import List, Dict, Callable, Any
+from typing import List, Dict, Callable, Any, Tuple
 from models import Estudiante, CAMPOS_ESTUDIANTE
 from shared.herramientas import (
     imprimir_titulo, imprimir_exito, imprimir_error, imprimir_info, confirmar
 )
 # Asumimos que el archivo anterior lo guardaste como controllers.py
-from controllers import (
+from views import (
     crear_estudiante, obtener_todos, obtener_por_id, buscar_estudiantes,
     actualizar_estudiante, eliminar_estudiante, estadisticas, agregar_calificacion
 )
