@@ -1,35 +1,38 @@
+from typing import List, Tuple, Dict, Any, Optional, Set
 from models import Estudiante, CAMPOS_ESTUDIANTE
 from shared.json_manager import GestorJSON
 from shared.herramientas import es_email_valido
 
+# Instancia global del gestor para leer y guardar en el archivo JSON
 gestor = GestorJSON("data/estudiantes.json")
 
-# TUPLAS de configuración: fijas e inmutables durante el ciclo de vida de la app
-CAMPOS_OBLIGATORIOS = (
-    "nombre", 
-    "apellido", 
-    "email", 
-    "cedula", 
-    "facultad", 
-    "carrera", 
-    "nivel", 
-    "paralelo"
+# ===================== CONFIGURACIÓN INMUTABLE =====================
+# Las tuplas son inmutables (no se pueden modificar). Es perfecto para configuraciones fijas.
+CAMPOS_OBLIGATORIOS: Tuple[str, ...] = (
+    "nombre", "apellido", "email", "cedula", "carnet", 
+    "facultad", "carrera", "nivel", "paralelo"
 )
 
-CAMPOS_BUSCABLES = (
-    "nombre", 
-    "apellido", 
-    "email", 
-    "cedula", 
-    "carrera", 
-    "paralelo"
+CAMPOS_BUSCABLES: Tuple[str, ...] = (
+    "nombre", "apellido", "email", "cedula", "carnet", "carrera"
 )
 
 
 # ===================== AYUDAS INTERNAS =====================
 
-def emails_registrados(excepto_id=None):
-    """CONJUNTO (set) con los emails ya usados. Detecta duplicados en O(1)."""
+def emails_registrados(excepto_id: Optional[int] = None) -> Set[str]:
+    """
+    Crea un conjunto (set) con todos los emails almacenados en la base de datos.
+    
+    Args:
+        excepto_id (int, opcional): ID del estudiante que se debe ignorar en la búsqueda 
+                                    (muy útil al momento de actualizar a un estudiante).
+    
+    Returns:
+        Set[str]: Un conjunto de correos electrónicos en minúsculas.
+    """
+    # Usamos una "comprensión de conjuntos" (set comprehension)
+    # Esto extrae los emails, los pasa a minúsculas y elimina automáticamente duplicados
     return {
         registro["email"].lower()
         for registro in gestor.leer()
@@ -37,8 +40,16 @@ def emails_registrados(excepto_id=None):
     }
 
 
-def cedulas_registradas(excepto_id=None):
-    """CONJUNTO (set) con las cédulas ya usadas para evitar duplicidad de identidad."""
+def cedulas_registradas(excepto_id: Optional[int] = None) -> Set[str]:
+    """
+    Crea un conjunto (set) con todas las cédulas almacenadas para evitar doble matriculación.
+    
+    Args:
+        excepto_id (int, opcional): ID del estudiante que se debe ignorar.
+        
+    Returns:
+        Set[str]: Un conjunto de números de cédula como cadenas de texto.
+    """
     return {
         str(registro["cedula"]).strip()
         for registro in gestor.leer()
@@ -46,213 +57,254 @@ def cedulas_registradas(excepto_id=None):
     }
 
 
-def siguiente_id():
-    """Calcula el siguiente id secuencial de forma segura."""
+def siguiente_id() -> int:
+    """
+    Calcula el próximo ID secuencial disponible leyendo los registros actuales.
+    
+    Returns:
+        int: El número de ID que le corresponderá al nuevo estudiante.
+    """
+    # Comprensión de listas: extraemos solo los IDs de todos los diccionarios
     ids = [registro["id"] for registro in gestor.leer()]
+    # Si la lista tiene elementos, tomamos el máximo y le sumamos 1. Si está vacía, iniciamos en 1.
     return max(ids) + 1 if ids else 1
 
 
-# ===================== C · CREATE =====================
+# ===================== C · CREATE (CREAR) =====================
 
-def crear_estudiante(datos):
+def crear_estudiante(datos: Dict[str, Any]) -> Tuple[bool, str]:
     """
-    datos: diccionario con las claves de CAMPOS_ESTUDIANTE.
-    Devuelve (exito: bool, mensaje: str).
+    Procesa un diccionario de datos crudos, lo valida, instancia el modelo y lo guarda en JSON.
+    
+    Args:
+        datos (dict): Diccionario con los datos ingresados por el usuario.
+        
+    Returns:
+        Tuple[bool, str]: Una tupla donde el primer valor es un booleano (True si fue exitoso) 
+                          y el segundo valor es un mensaje descriptivo.
     """
     try:
-        # 1) Normalización de campos tipo texto y extracción de los demás
+        # 1) NORMALIZACIÓN: Limpiamos los datos y forzamos los tipos correctos
         valores = {}
         for campo in CAMPOS_ESTUDIANTE:
-            if campo in ("nivel", "beca_activa"):
-                valores[campo] = datos.get(campo)
+            if campo == "beca_activa":
+                # Forzamos a booleano
+                valores[campo] = bool(datos.get(campo, False))
+            elif campo == "nivel":
+                # Si no envían el nivel, dejamos un string vacío para que la validación lo detecte
+                valores[campo] = datos.get(campo, "") 
             else:
+                # Limpiamos espacios en blanco a los extremos de los textos
                 valores[campo] = str(datos.get(campo, "")).strip()
 
-        # 2) Validación de campos obligatorios recorriendo la TUPLA
-        faltantes = [campo for campo in CAMPOS_OBLIGATORIOS if valores[campo] is None or valores[campo] == ""]
+        # 2) VALIDACIÓN DE OBLIGATORIOS: Comparamos contra nuestra tupla fija
+        # Si el campo está vacío, lo agregamos a la lista de faltantes
+        faltantes = [campo for campo in CAMPOS_OBLIGATORIOS if valores[campo] == ""]
         if faltantes:
             return False, f"Faltan campos obligatorios: {', '.join(faltantes)}"
 
-        # 3) Validación de tipos numéricos y booleanos específicos
+        # 2.5) VALIDACIÓN DE TIPO: El nivel debe ser numérico
         try:
             valores["nivel"] = int(valores["nivel"])
-        except (ValueError, TypeError):
-            return False, "El nivel (semestre) debe ser un número entero válido"
+        except ValueError:
+            return False, "El nivel debe ser un número entero (ej: 3 para tercer semestre)"
 
-        valores["beca_activa"] = bool(valores.get("beca_activa", False))
-
-        # 4) Validación de formato de email
+        # 3) VALIDACIÓN DE FORMATO: Revisamos el correo
         if not es_email_valido(valores["email"]):
             return False, f"El email '{valores['email']}' no tiene un formato válido"
 
-        # 5) Validación de duplicados instantánea mediante CONJUNTOS (sets)
+        # 4) REGLAS DE NEGOCIO (DUPLICADOS): Búsqueda instantánea O(1) usando los conjuntos
         if valores["email"].lower() in emails_registrados():
-            return False, "Ese email ya está registrado por otro estudiante"
-
+            return False, "Ese email ya está registrado"
         if valores["cedula"] in cedulas_registradas():
-            return False, f"La cédula '{valores['cedula']}' ya se encuentra registrada"
+            return False, "Esa cédula ya está registrada"
 
-        # 6) Instanciación del Modelo (desempaquetado ** de argumentos)
+        # 5) INSTANCIACIÓN: Desempaquetamos (**) el diccionario para construir el objeto Estudiante
         estudiante = Estudiante(siguiente_id(), **valores)
 
-        # 7) Persistencia: añadir a la LISTA y guardar en disco
+        # 6) PERSISTENCIA: Agregamos el diccionario del objeto a la lista del archivo y guardamos
         registros = gestor.leer()
         registros.append(estudiante.a_diccionario())
         if not gestor.guardar(registros):
-            return False, "No se pudo escribir en el archivo estudiantes.json"
+            return False, "No se pudo escribir el archivo"
 
-        return True, f"Estudiante {estudiante.obtener_nombre_completo()} registrado con ID {estudiante.id}"
+        return True, f"Estudiante {estudiante.obtener_nombre_completo()} matriculado con id {estudiante.id}"
 
     except Exception as error:
+        # Capturamos cualquier error inesperado para que el programa no colapse (Crash)
         return False, f"Error inesperado: {error}"
 
 
-# ===================== R · READ =====================
+# ===================== R · READ (LEER) =====================
 
-def obtener_todos():
-    """LISTA de objetos Estudiante reconstruidos con su Factory Method."""
+def obtener_todos() -> List[Estudiante]:
+    """
+    Lee el archivo JSON y reconstruye todos los objetos Estudiante en memoria.
+    
+    Returns:
+        List[Estudiante]: Una lista llena de instancias vivas de la clase Estudiante.
+    """
+    # Usamos el Factory Method (@classmethod) 'desde_diccionario' del modelo
     return [Estudiante.desde_diccionario(registro) for registro in gestor.leer()]
 
 
-def obtener_por_id(id_estudiante):
-    """Busca y retorna la instancia de Estudiante según su identificador único."""
+def obtener_por_id(id_estudiante: int) -> Optional[Estudiante]:
+    """
+    Busca a un estudiante específico según su identificador único.
+    
+    Args:
+        id_estudiante (int): El ID del estudiante a buscar.
+        
+    Returns:
+        Optional[Estudiante]: El objeto Estudiante si lo encuentra, o None si no existe.
+    """
+    # Recorremos los objetos ya instanciados
     for estudiante in obtener_todos():
         if estudiante.id == id_estudiante:
             return estudiante
     return None
 
 
-def obtener_por_cedula(cedula):
-    """Búsqueda directa por número de cédula."""
-    cedula_limpia = str(cedula).strip()
-    for estudiante in obtener_todos():
-        if estudiante.cedula == cedula_limpia:
-            return estudiante
-    return None
+# ===================== S · SEARCH (BUSCAR) =====================
 
-
-# ===================== S · SEARCH =====================
-
-def buscar_estudiantes(termino):
-    """Búsqueda lineal en los campos definidos en CAMPOS_BUSCABLES."""
+def buscar_estudiantes(termino: str) -> List[Estudiante]:
+    """
+    Realiza una búsqueda tipo "fuzzy" o lineal por múltiples campos configurados.
+    
+    Args:
+        termino (str): La palabra o texto a buscar (ej: "Juan", "Ingeniería").
+        
+    Returns:
+        List[Estudiante]: Una lista con los objetos Estudiante que coincidieron.
+    """
     termino = termino.strip().lower()
     if not termino:
         return []
 
     encontrados = []
+    # Recorremos los diccionarios crudos en el JSON por rendimiento
     for registro in gestor.leer():
         for campo in CAMPOS_BUSCABLES:
+            # Si el término de búsqueda es parte del contenido del campo (ej: "juan" in "juan perez")
             if termino in str(registro.get(campo, "")).lower():
                 encontrados.append(Estudiante.desde_diccionario(registro))
-                break  # Coincidencia hallada: pasa al siguiente estudiante
+                break  # Evitamos que el estudiante se agregue doble si coincide en 2 campos
     return encontrados
 
 
-# ===================== U · UPDATE =====================
+# ===================== U · UPDATE (ACTUALIZAR) =====================
 
-def actualizar_estudiante(id_estudiante, cambios):
-    """cambios: diccionario únicamente con los campos que se desean modificar."""
+def actualizar_estudiante(id_estudiante: int, cambios: Dict[str, Any]) -> Tuple[bool, str]:
+    """
+    Modifica únicamente los campos enviados en el diccionario 'cambios' para un estudiante.
+    
+    Args:
+        id_estudiante (int): ID del estudiante a editar.
+        cambios (dict): Diccionario con las claves y los nuevos valores (ej: {"nivel": 4}).
+        
+    Returns:
+        Tuple[bool, str]: Resultado de la operación (éxito, mensaje).
+    """
     try:
-        # DIFERENCIA DE CONJUNTOS: valida si enviaron claves inexistentes
+        # 1) DIFERENCIA DE CONJUNTOS: Validamos que no envíen claves inventadas
         desconocidos = set(cambios) - set(CAMPOS_ESTUDIANTE)
         if desconocidos:
             return False, f"Campos no válidos: {', '.join(sorted(desconocidos))}"
 
         if not cambios:
-            return False, "No se indicó ningún cambio para actualizar"
+            return False, "No se indicó ningún cambio"
 
-        # Validaciones de reglas de negocio sobre los cambios
+        # 2) Validaciones específicas solo si el campo viene en 'cambios'
         if "email" in cambios:
             if not es_email_valido(cambios["email"]):
                 return False, "El email no tiene un formato válido"
+            # Nótese que aquí pasamos el 'excepto_id' para que no diga que "su propio correo" ya está en uso
             if cambios["email"].lower() in emails_registrados(excepto_id=id_estudiante):
-                return False, "Ese email ya pertenece a otro estudiante"
-
+                return False, "Ese email ya lo usa otro estudiante"
+                
         if "cedula" in cambios:
-            cedula_str = str(cambios["cedula"]).strip()
-            if cedula_str in cedulas_registradas(excepto_id=id_estudiante):
-                return False, "Esa cédula ya pertenece a otro estudiante"
-            cambios["cedula"] = cedula_str
+            if str(cambios["cedula"]).strip() in cedulas_registradas(excepto_id=id_estudiante):
+                return False, "Esa cédula ya está registrada por otro estudiante"
 
         if "nivel" in cambios:
             try:
                 cambios["nivel"] = int(cambios["nivel"])
-            except (ValueError, TypeError):
-                return False, "El nivel debe ser un número entero válido"
+            except ValueError:
+                return False, "El nivel debe ser un número entero"
 
+        # 3) Localizar la posición del registro en la lista global
         registros = gestor.leer()
         posicion = None
+        # enumerate() nos devuelve el índice (0, 1, 2...) y el diccionario de cada iteración
         for indice, registro in enumerate(registros):
             if registro["id"] == id_estudiante:
                 posicion = indice
                 break
 
         if posicion is None:
-            return False, f"No existe un estudiante con ID {id_estudiante}"
+            return False, f"No existe un estudiante con id {id_estudiante}"
 
-        # Actualiza el diccionario en memoria y persiste en JSON
+        # 4) Actualizamos usando el método nativo de los diccionarios (.update())
         registros[posicion].update(cambios)
+        
+        # 5) Guardamos la lista completa de nuevo en el archivo
         gestor.guardar(registros)
-        return True, f"Estudiante con ID {id_estudiante} actualizado ({len(cambios)} campo/s modificados)"
+        return True, f"Estudiante {id_estudiante} actualizado ({len(cambios)} campo/s)"
 
     except Exception as error:
         return False, f"Error inesperado: {error}"
 
 
-# ===================== D · DELETE =====================
+# ===================== D · DELETE (ELIMINAR) =====================
 
-def eliminar_estudiante(id_estudiante):
-    """Eliminación no destructiva mediante comprensión de listas."""
+def eliminar_estudiante(id_estudiante: int) -> Tuple[bool, str]:
+    """
+    Elimina un estudiante de la base de datos reconstruyendo la lista sin él.
+    
+    Args:
+        id_estudiante (int): ID del estudiante a borrar.
+        
+    Returns:
+        Tuple[bool, str]: Resultado de la operación (éxito, mensaje).
+    """
     registros = gestor.leer()
+    
+    # Práctica segura: en vez de borrar con .remove() mientras iteramos (lo cual causa bugs),
+    # construimos una lista nueva que incluya a todos EXCEPTO al que queremos borrar.
     quedan = [registro for registro in registros if registro["id"] != id_estudiante]
 
+    # Si la lista nueva tiene el mismo tamaño, significa que no se filtró a nadie (el ID no existía)
     if len(quedan) == len(registros):
-        return False, f"No existe un estudiante con ID {id_estudiante}"
+        return False, f"No existe un estudiante con id {id_estudiante}"
 
+    # Guardamos la lista filtrada
     gestor.guardar(quedan)
-    return True, f"Estudiante con ID {id_estudiante} eliminado correctamente"
+    return True, f"Estudiante {id_estudiante} eliminado"
 
 
-# ===================== GESTIÓN ACADÉMICA (NOTAS Y MATERIAS) =====================
+# ===================== EXTRA: ESTADÍSTICAS =====================
 
-def agregar_calificacion(id_estudiante, materia, nota):
-    """Añade una nota a una materia específica de un estudiante y actualiza el archivo."""
-    try:
-        estudiante = obtener_por_id(id_estudiante)
-        if not estudiante:
-            return False, f"No existe un estudiante con ID {id_estudiante}"
-
-        nota_num = float(nota)
-        estudiante.agregar_nota(materia, nota_num)
-
-        # Actualizamos en disco reconstruyendo la lista
-        registros = gestor.leer()
-        for i, reg in enumerate(registros):
-            if reg["id"] == id_estudiante:
-                registros[i] = estudiante.a_diccionario()
-                break
-
-        gestor.guardar(registros)
-        return True, f"Nota {nota_num} añadida a '{materia}' para {estudiante.obtener_nombre_completo()}"
-    except ValueError:
-        return False, "La calificación ingresada debe ser un número decimal o entero válido"
-    except Exception as error:
-        return False, f"Error al registrar la calificación: {error}"
-
-
-# ===================== EXTRA: estadísticas con conjuntos =====================
-
-def estadisticas():
-    """Devuelve un DICCIONARIO resumen aplicando teoría de colecciones."""
+def estadisticas() -> Dict[str, Any]:
+    """
+    Genera métricas globales del sistema aplicando lógica de conjuntos y listas.
+    
+    Returns:
+        Dict[str, Any]: Diccionario con resúmenes estadísticos listos para mostrarse.
+    """
     registros = gestor.leer()
-    carreras = {r.get("carrera", "").title() for r in registros if r.get("carrera")}
+    
+    # CONJUNTOS (sets): extraemos facultades y carreras únicas (sin repetidos)
     facultades = {r.get("facultad", "").title() for r in registros if r.get("facultad")}
-    con_beca = [r["nombre"] for r in registros if r.get("beca_activa")]
+    carreras = {r.get("carrera", "").title() for r in registros if r.get("carrera")}
+    
+    # LISTAS (lists): extraemos únicamente los nombres de quienes tienen beca
+    becados = [r["nombre"] for r in registros if r.get("beca_activa")]
 
     return {
         "total": len(registros),
-        "carreras": sorted(carreras),
+        # sorted() convierte los conjuntos en listas ordenadas alfabéticamente
         "facultades": sorted(facultades),
-        "total_becados": len(con_beca),
-        "becados": con_beca,
+        "carreras": sorted(carreras),
+        "total_becados": len(becados),
+        "becados": becados,
     }
