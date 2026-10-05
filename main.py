@@ -6,7 +6,8 @@ from shared.herramientas import (
 # Asumimos que el archivo anterior lo guardaste como controllers.py
 from views import (
     crear_estudiante, obtener_todos, obtener_por_id, buscar_estudiantes,
-    actualizar_estudiante, eliminar_estudiante, estadisticas, agregar_calificacion
+    actualizar_estudiante, eliminar_estudiante, estadisticas, agregar_calificacion,materias_ofertadas,
+    estudiantes_en_comun
 )
 
 def pausa() -> None:
@@ -55,7 +56,7 @@ def opcion_crear() -> None:
     pausa()
 
 
-# ===================== R · LEER TODOS =====================
+#  LEER TODOS 
 
 def opcion_ver_todos() -> None:
     """Obtiene y muestra la tabla completa de estudiantes."""
@@ -109,7 +110,7 @@ def opcion_ver_por_id() -> None:
     pausa()
 
 
-# ===================== U · ACTUALIZAR =====================
+# ACTUALIZAR 
 
 def opcion_actualizar() -> None:
     """Solicita campos a editar y envía solo los cambios al controlador."""
@@ -150,7 +151,7 @@ def opcion_actualizar() -> None:
     pausa()
 
 
-# ===================== D · ELIMINAR =====================
+#  ELIMINAR
 
 def opcion_eliminar() -> None:
     """Pide confirmación y elimina un estudiante por ID."""
@@ -180,7 +181,7 @@ def opcion_eliminar() -> None:
     pausa()
 
 
-# ===================== A · GESTIÓN ACADÉMICA =====================
+#   GESTIÓN ACADÉMICA 
 
 def opcion_agregar_nota() -> None:
     """Opción nueva para interactuar con la lógica matemática del modelo."""
@@ -202,7 +203,9 @@ def opcion_agregar_nota() -> None:
     pausa()
 
 
-# ===================== EXTRA · ESTADÍSTICAS =====================
+
+
+#EXTRA · ESTADÍSTICAS 
 
 def opcion_estadisticas() -> None:
     """Muestra el resumen generado por las comprensiones de colecciones del controlador."""
@@ -224,8 +227,35 @@ def salir() -> str:
     imprimir_info("¡Gracias por usar el Sistema Académico! 👋")
     return "salir"
 
+def opcion_materias_ofertadas() -> None:
+    """Muestra un listado de todas las materias ofertadas sin repetir."""
+    imprimir_titulo("MATERIAS OFERTADAS EN EL SISTEMA")
+    materias = materias_ofertadas()
+    if not materias:
+        imprimir_info("No hay materias registradas todavía.")
+    else:
+        for i, materia in enumerate(sorted(materias), 1): 
+            print(f"  {i}. {materia}")
+    pausa()
 
-# ===================== MOTOR DEL MENÚ =====================
+def opcion_materias_en_comun() -> None:
+    """Compara las materias compartidas entre dos estudiantes usando intersección."""
+    imprimir_titulo("MATERIAS EN COMÚN ENTRE DOS ESTUDIANTES")
+    try:
+        id_a = int(input("Ingrese el ID del primer estudiante: "))
+        id_b = int(input("Ingrese el ID del segundo estudiante: "))
+    except ValueError:
+        imprimir_error("Los IDs deben ser números enteros.")
+        return pausa()
+
+    comun = estudiantes_en_comun(id_a, id_b)
+    if comun:
+        imprimir_exito(f"Materias compartidas: {', '.join(sorted(comun))}")
+    else:
+        imprimir_info("No hay materias en común o alguno de los IDs no existe.")
+    pausa()
+
+# MOTOR DEL MENÚ 
 
 # DICCIONARIO DE FUNCIONES: En Python, las funciones son "ciudadanos de primera clase".
 # Esto significa que podemos guardar funciones dentro de variables o diccionarios.
@@ -238,7 +268,9 @@ OPCIONES: Dict[str, Tuple[str, Callable[[], Any]]] = {
     "5": ("Actualizar datos", opcion_actualizar),
     "6": ("Dar de baja (Eliminar)", opcion_eliminar),
     "7": ("Registrar calificación (Materia/Nota)", opcion_agregar_nota),
-    "8": ("Ver estadísticas globales", opcion_estadisticas),
+    "8": ("Ver materias ofertadas", opcion_materias_ofertadas),
+    "9": ("Ver materias en común", opcion_materias_en_comun),
+    "10": ("Ver estadísticas globales", opcion_estadisticas),
     "0": ("Salir del sistema", salir),
 }
 

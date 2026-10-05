@@ -287,6 +287,10 @@ def agregar_calificacion(id_estudiante: int, materia: str, nota: str):
         # Convertimos la nota (que entra como texto desde el input) a número flotante
         nota_num = float(nota)
         
+        # VALIDACIÓN DEL RANGO (0 a 20)
+        if not (0 <= nota_num <= 20):
+            return False, "La calificación debe estar entre 0 y 20."
+        
         # Llamamos al modelo para que actualice la memoria RAM
         estudiante.agregar_nota(materia, nota_num)
 
@@ -305,6 +309,28 @@ def agregar_calificacion(id_estudiante: int, materia: str, nota: str):
         return False, "La calificación ingresada debe ser un número decimal (ej. 18.5) o entero válido"
     except Exception as error:
         return False, f"Error al registrar la calificación: {error}"
+
+def materias_ofertadas() -> Set[str]:
+    """Devuelve un set con todas las materias inscritas por todos los estudiantes, sin repetir."""
+    estudiantes = obtener_todos()
+    materias_totales = set()
+    
+    for estudiante in estudiantes:
+        # El controlador se adapta al modelo usando directamente el set de materias
+        materias_totales.update(estudiante.materias)
+        
+    return materias_totales
+
+def estudiantes_en_comun(id_a: int, id_b: int) -> Set[str]:
+    """Controlador que busca a dos estudiantes y devuelve sus materias en común."""
+    estudiante_a = obtener_por_id(id_a)
+    estudiante_b = obtener_por_id(id_b)
+    
+    if not estudiante_a or not estudiante_b:
+        return set() # O manejar el error según prefieras
+        
+    # Llamamos al método experto que ya creaste en el Modelo
+    return estudiante_a.materias_en_comun(estudiante_b)
 
 
 # ESTADÍSTICAS 

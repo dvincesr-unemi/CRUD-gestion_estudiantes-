@@ -13,7 +13,30 @@
     "beca_activa": false,
     "notas": {
       "Estructura De Datos": [
-        10.0
+        10.0,
+        18.0,
+        20.0
+      ]
+    },
+    "materias": [
+      "Estructura De Datos"
+    ]
+  },
+  {
+    "id": 2,
+    "nombre": "dffdds",
+    "apellido": "dsfdsf",
+    "email": "dfsf@gjh.gug",
+    "cedula": "3123124123",
+    "carnet": "232fd",
+    "facultad": "sfdsfa",
+    "carrera": "ergasg",
+    "nivel": 4,
+    "paralelo": "b1",
+    "beca_activa": true,
+    "notas": {
+      "Estructura De Datos": [
+        12.0
       ]
     },
     "materias": [
