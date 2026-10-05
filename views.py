@@ -327,9 +327,9 @@ def estudiantes_en_comun(id_a: int, id_b: int) -> Set[str]:
     estudiante_b = obtener_por_id(id_b)
     
     if not estudiante_a or not estudiante_b:
-        return set() # O manejar el error según prefieras
+        return set() 
         
-    # Llamamos al método experto que ya creaste en el Modelo
+    # Llamamos al método experto creadoen el modelo
     return estudiante_a.materias_en_comun(estudiante_b)
 
 
@@ -359,3 +359,4 @@ def estadisticas() -> Dict[str, Any]:
         "total_becados": len(becados),
         "becados": becados,
     }
+

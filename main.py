@@ -138,7 +138,7 @@ def opcion_actualizar() -> None:
         # Si el usuario escribió algo, lo agregamos al diccionario de cambios
         if nuevo:
             if campo == "beca_activa":
-                # Truco simple: si escribió algo, asumimos True, si escribió "false/0/no", False
+                # si escribió algo, asumimos True, si escribió "false/0/no", False
                 cambios[campo] = nuevo.lower() not in ("false", "0", "no", "f")
             else:
                 cambios[campo] = nuevo
