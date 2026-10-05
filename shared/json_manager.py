@@ -16,7 +16,7 @@ class GestorJSON:
             ruta (str): La ubicación del archivo JSON (ej. 'data/clientes.json').
             
         Returns:
-            None
+            None 
         """
         self.ruta = ruta
         

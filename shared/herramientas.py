@@ -111,7 +111,7 @@ def confirmar(pregunta: str) -> bool:
     """
     # Devuelve True si el usuario respondió algo de la tupla RESPUESTAS_SI
     respuesta = input(f"{pregunta} (si/no): ").strip().lower()
-    return respuesta in RESPUESTAS_SI
+    return respuesta in RESPUESTAS_SI 
 
 
 def es_email_valido(texto: str) -> bool:
@@ -125,7 +125,7 @@ def es_email_valido(texto: str) -> bool:
         bool: True si cumple con la validación mínima, False en caso contrario.
     """
     # Validación mínima: un @, algo antes, algo después y un punto al final
-    texto = texto.strip()
+    texto = texto.strip()   
     if texto.count("@") != 1:
         return False
     usuario, dominio = texto.split("@")
